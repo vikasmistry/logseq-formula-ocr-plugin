@@ -1,8 +1,8 @@
 {
   "name": "latex_formula_ocr_plugin",
-  "version": "v0.0.1",
+  "version": "v0.0.2",
   "description": "Read images of LaTex formulas and get the LaTex code",
-  "author": "Olmo Baldoni",
+  "authors": "Olmo Baldoni",
   "license": "MIT",
   "main": "dist/index.html",
   "logseq": {
@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@logseq/libs": "0.0.15",
+    "axios": "^1.7.9",
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {

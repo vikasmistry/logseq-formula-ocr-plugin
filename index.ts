@@ -1,22 +1,29 @@
 import "@logseq/libs"
 import { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin';
-
+import axios from 'axios';
 
 const settingsSchema: SettingSchemaDesc[] = [
-    {
-        key: "HuggingFace User Access Token",
-        type: "string",
-        default: "",
-        title: "HuggingFace User Access Token",
-        description:
-            " Paste your HuggingFace User Access Token. For more information https://huggingface.co/docs/hub/security-tokens",
-    },
-    {
-      key: "Use Local API",
-      type: "boolean",
-      default: false,
-      title: "Use Local API",
-      description: "Toggle to use the local API instead of HuggingFace API"
+  {
+    key: "HuggingFace User Access Token",
+    type: "string",
+    default: "",
+    title: "HuggingFace User Access Token",
+    description:
+      " Paste your HuggingFace User Access Token. For more information https://huggingface.co/docs/hub/security-tokens",
+  },
+  {
+    key: "Use Local API",
+    type: "boolean",
+    default: false,
+    title: "Use Local API",
+    description: "Toggle to use the local API instead of HuggingFace API"
+  },
+  {
+    key: "Local API Address",
+    type: "string",
+    default: "http://0.0.0.0:8503",
+    title: "Local API Address",
+    description: "Enter the IP address and port of the local API (e.g., http://0.0.0.0:8503)"
   }
 ]
 
@@ -25,6 +32,8 @@ const settingsSchema: SettingSchemaDesc[] = [
 async function query_huggingface(data: any) {
 
   const access_token = logseq.settings!["HuggingFace User Access Token"]
+
+  
 
   if (!access_token) {
     console.error("Access token not found. Please enter the user token in the settings.");
@@ -63,25 +72,32 @@ async function query_huggingface(data: any) {
   return result[0].generated_text;
 }
 
+
 async function query_local(data: any) {
   const formData = new FormData();
-  formData.append("file", data);
+  formData.append('image', data, 'image/png'); 
+
+  const additionalData = {
+    file_type: 'formula',            // string : 'pdf', 'page', 'text_formula', 'formula', 'text'
+    resized_shape: 768,             // int: Resize the image width to this size for processing; default value is 768
+  };
+
+  Object.keys(additionalData).forEach(key => formData.append(key, additionalData[key]));
 
   try {
-    const response = await fetch(
-      "http://localhost/upload_latex_image/", 
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
+    const serverurl= logseq.settings!["Local API Address"]
 
-    if (!response.ok) {
-      throw new Error(`API returned status code ${response.status}`);
+    const response = await axios.post(`${serverurl}/pix2text`, formData);
+
+    const outs = response.data.results.replace(/\$\$/g, '').trim();
+
+    let onlyText;
+    if (typeof outs === 'string') {
+      onlyText = outs;
+    } else {
+      onlyText = outs.map(out => out.text).join('\n');
     }
-
-    const result = await response.text();
-    return result;
+    return onlyText;
 
   } catch (error) {
     console.error("Local API request failed: ", error);
