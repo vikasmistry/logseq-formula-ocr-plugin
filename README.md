@@ -1,8 +1,13 @@
 > **Note**: This update includes information about using the local `pix2text` server, instructions for starting the server, and details about the new settings options. 
+
 > Install Pix2Text ```pip install pix2text```
+
 > Start the server ```p2t serve -l en -H 0.0.0.0 -p 8503```
+
 > Download the zip file from [releases](https://github.com/vikasmistry/logseq-formula-ocr-plugin/releases) 
+
 > Import Plugin : `Logseq > Plugins > Load unpacked plugin` and point to the unzip folder
+
 > Now you can use it offline without any external API.
 
 # Logseq LaTeX Formula OCR Plugin
