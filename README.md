@@ -2,14 +2,15 @@
 
 Convert LaTeX formula images from clipboard to LaTeX code in [Logseq](https://logseq.com/) using various OCR providers like Hugging Face Transformers, Google Gemini, or a local Pix2Text server.
 
-**Use cases:**
+## Features
 
-- Preparation of scientific presentations or papers
-- Transcribing lectures
-- Technical reports
-- Self-study
-
-(For me it was useful because I hate copying formulas by hand and I hate pasting screenshots of formulas into Logseq😅)
+- **Formula OCR**: Convert images of LaTeX formulas into editable LaTeX code.
+- **Table OCR**: Convert images of tables into Markdown tables.
+- **Multiple OCR Providers**: Choose from several backends:
+    - **Google Gemini**: High-quality formula and table recognition.
+    - **Pix2Text (Local)**: A private, offline-first OCR server.
+    - **Hugging Face API**: Cloud-based processing using the Nougat model.
+    - **Docker (Self-hosted)**: Run the Nougat OCR model in a local Docker container.
 
 ## Commands
 
@@ -44,10 +45,10 @@ Convert LaTeX formula images from clipboard to LaTeX code in [Logseq](https://lo
  
  3. **Manual + Hugging Face**
     - Requirements: [Node.js](https://nodejs.org/en), [Yarn](https://yarnpkg.com/), [Parcel](https://parceljs.org/), [Hugging Face User Access Token](https://huggingface.co/docs/hub/security-tokens)
-   - Clone repo: `git clone https://github.com/olmobaldoni/logseq-formula-ocr-plugin.git`
-   - Install dependencies: `cd logseq-formula-ocr-plugin && yarn && yarn build`
-   - Enable developer mode: `Logseq > Settings > Advanced > Developer mode`
-   - Import Plugin: `Logseq > Plugins > Load unpacked plugin` and point to the cloned repo
+    - Clone repo: `git clone https://github.com/olmobaldoni/logseq-formula-ocr-plugin.git`
+    - Install dependencies: `cd logseq-formula-ocr-plugin && yarn && yarn build`
+    - Enable developer mode: `Logseq > Settings > Advanced > Developer mode`
+    - Import Plugin: `Logseq > Plugins > Load unpacked plugin` and point to the cloned repo
 
 4. **Marketplace + Hugging Face**
    - Requirements: [Hugging Face User Access Token](https://huggingface.co/docs/hub/security-tokens)
