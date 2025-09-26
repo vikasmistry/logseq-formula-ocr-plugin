@@ -1,18 +1,9 @@
-> **Note**: This update includes information about using the local `pix2text` server, instructions for starting the server, and details about the new settings options. 
+> **Note**: This update includes support for Google Gemini and the local `pix2text` server, instructions for starting the server, and details about the new settings options. 
 
-> Install Pix2Text ```pip install pix2text```
-
-> Start the server ```p2t serve -l en -H 0.0.0.0 -p 8503```
-
-> Download the zip file from [releases](https://github.com/vikasmistry/logseq-formula-ocr-plugin/releases) 
-
-> Import Plugin : `Logseq > Plugins > Load unpacked plugin` and point to the unzip folder
-
-> Now you can use it offline without any external API.
 
 # Logseq LaTeX Formula OCR Plugin
 
-Convert LaTeX formula images from clipboard to LaTeX code in [Logseq](https://logseq.com/) using Transformers.
+Convert LaTeX formula images from clipboard to LaTeX code in [Logseq](https://logseq.com/) using various OCR providers like Hugging Face Transformers, Google Gemini, or a local Pix2Text server.
 
 **Use cases:**
 
@@ -27,11 +18,13 @@ Convert LaTeX formula images from clipboard to LaTeX code in [Logseq](https://lo
 
 - `/display-formula-ocr`: Insert LaTeX code on a new line
 - `/inline-formula-ocr`: Insert LaTeX code within a paragraph
+- `/table-ocr`: Insert a Markdown table from an image. Currently works best with the Gemini provider.
 
 > **Notes**: 
 > + The image in the clipboard must be a LaTex formula image
 > + Initial use may be slow due to model loading
 > + With the free Hugging Face plan you can make about 30k calls per month
+> + The Google Gemini API has a free tier with usage limits. Check the [official pricing page](https://ai.google.dev/pricing) for details.
 
 
 ## Installation Options
@@ -47,21 +40,25 @@ Convert LaTeX formula images from clipboard to LaTeX code in [Logseq](https://lo
    - Requirements: [Hugging Face User Access Token](https://huggingface.co/docs/hub/security-tokens)
    - Search for `LaTeX Formula OCR` in the Logseq marketplace and install directly
 
-3. **Marketplace + Docker (Recommended)**
+3. **Marketplace + Docker**
     - Requirements: [Docker](https://www.docker.com/)
     - Search for `LaTeX Formula OCR` in the Logseq marketplace and install directly
     - Pull image: `docker pull olmobaldoni/nougat-ocr-api:latest`
     - Run container: `docker run -d -p 80:80 olmobaldoni/nougat-ocr-api:latest`
 
-4. **Manual + Pix2Text (Offline)**
-    - Requirements: [Node.js](https://nodejs.org/en), [Yarn](https://yarnpkg.com/), [Parcel](https://parceljs.org/), [Pix2Text](https://github.com/breezedeus/pix2text)
-   - Clone repo: `git clone https://github.com/vikasmistry/logseq-formula-ocr-plugin.git`
-   - Install dependencies: `cd logseq-formula-ocr-plugin && yarn && yarn build`
+4. **Manual + Gemini**
+    - Requirements: Google Gemini API Key
+    - Enable developer mode: `Logseq > Settings > Advanced > Developer mode`
+    - Import Plugin: `Logseq > Plugins > Load unpacked plugin` and point to the cloned repo
+    - Go to plugin settings, select "Gemini" as the OCR Provider.
+    - Paste your Google Gemini API Key in the corresponding setting field.
+
+5. **Manual + Pix2Text (Offline)**
    - Install Pix2Text [Python package](https://github.com/breezedeus/pix2text?tab=readme-ov-file#install)
    - Start the server, eg. ```p2t serve -l en -H 0.0.0.0 -p 8503 ```
    - Enable developer mode: `Logseq > Settings > Advanced > Developer mode`
    - Import Plugin: `Logseq > Plugins > Load unpacked plugin` and point to the cloned repo
-   - In the plugin settings, enable the "Use Local API" option and set the "Local API Address" to the appropriate IP address and port (default is http://0.0.0.0:8503)
+   - In the plugin settings, select "Local" as the OCR Provider and set the "Local API Address" to the appropriate IP address and port (default is http://0.0.0.0:8503)
  
 
 > **Note**: For more information on how to use the other local API visit: https://github.com/olmobaldoni/LaTex-Formula-OCR-API
@@ -74,6 +71,12 @@ Convert LaTeX formula images from clipboard to LaTeX code in [Logseq](https://lo
     
 2. **Local API**
     - In Logseq: `Plugins Settings > LaTex Formula OCR > Use Local API` to switch between Hugging Face and local
+
+3. **Gemini API**
+    - Get your API key from Google AI Studio.
+    - In Logseq: `Plugins Settings > LaTex Formula OCR > OCR Provider` and select `Gemini`.
+    - Then, in `Plugins Settings > LaTex Formula OCR > Google Gemini API Key` paste the token.
+
 
 ![Settings](./settings.png)
 
@@ -101,11 +104,13 @@ This plugin is based on [nougat-latex-base](https://huggingface.co/Norm/nougat-l
 
 [Pix2Text](https://github.com/breezedeus/pix2text): Used for the local OCR server.
 
+[Google Gemini](https://ai.google.dev/): Used as one of the OCR providers.
+
 In addition, this plugin was also inspired by [xxchan](https://github.com/xxchan) and its plugin [logseq-ocr](https://github.com/xxchan/logseq-ocr)
+
 
 
 
 ## License
 
 MIT
-

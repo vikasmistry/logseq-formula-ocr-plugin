@@ -4,6 +4,14 @@ import axios from 'axios';
 
 const settingsSchema: SettingSchemaDesc[] = [
   {
+    key: "OCR Provider",
+    type: "enum",
+    default: "HuggingFace",
+    enumChoices: ["HuggingFace", "Local", "Gemini"],
+    title: "OCR Provider",
+    description: "Choose the OCR provider: HuggingFace, Local API, or Google Gemini API."
+  },
+  {
     key: "HuggingFace User Access Token",
     type: "string",
     default: "",
@@ -11,19 +19,21 @@ const settingsSchema: SettingSchemaDesc[] = [
     description:
       " Paste your HuggingFace User Access Token. For more information https://huggingface.co/docs/hub/security-tokens",
   },
-  {
-    key: "Use Local API",
-    type: "boolean",
-    default: false,
-    title: "Use Local API",
-    description: "Toggle to use the local API instead of HuggingFace API"
-  },
+
   {
     key: "Local API Address",
     type: "string",
     default: "http://0.0.0.0:8503",
     title: "Local API Address",
-    description: "Enter the IP address and port of the local API (e.g., http://0.0.0.0:8503)"
+    description: "Enter the IP address and port of the local API (e.g., http://0.0.0.0:8503). Only used if 'Local' is selected as OCR Provider."
+  },
+  {
+    key: "Gemini API Key",
+    type: "string",
+    default: "",
+    title: "Google Gemini API Key",
+    description:
+      "Paste your Google Gemini API Key. For more information https://ai.google.dev/gemini-api/docs/api-key. Only used if 'Gemini' is selected as OCR Provider.",
   }
 ]
 
@@ -105,7 +115,73 @@ async function query_local(data: any) {
   }
 }
 
-async function formula_ocr() {
+async function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result.split(',')[1]); // Remove the data URI prefix
+      } else {
+        reject(new Error("Failed to convert blob to base64 string."));
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function query_gemini(data: Blob, ocrType: 'formula' | 'table') {
+  const apiKey = logseq.settings!["Gemini API Key"];
+
+  if (!apiKey) {
+    console.error("Gemini API Key not found. Please enter the API key in the settings.");
+    logseq.UI.showMsg('Gemini API Key not found. Please enter the API key in the settings.', 'error');
+    return;
+  }
+
+  const base64ImageData = await blobToBase64(data);
+
+  const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`;
+
+  const formulaPrompt = "Extract any formulas from this image as a LaTeX math expression in markdown format. The image may contain mathematical formulas and text. For any text with inline formulas, ensure only the formula part is formatted with single dollar signs ($). Use OCR to extract everything accurately, preserving all symbols and formatting. Return only the extracted content in raw markdown-compatible LaTeX. Do not include any comments, explanations, or code block formatting like ```markdown or ```latex.";
+  const tablePrompt = "Extract the table from this image into a Markdown table format. If any cells in the table contain mathematical equations, make sure to wrap them in single dollar signs ($) for inline LaTeX rendering. Your response should contain ONLY the raw Markdown for the table, without any surrounding text, comments, explanations, or code block formatting like ```markdown or ```.";
+
+  const promptText = ocrType === 'table' ? tablePrompt : formulaPrompt;
+
+  try {
+    const response = await axios.post(
+      GEMINI_API_URL,
+      {
+        contents: [
+          {
+            parts: [
+              {
+                text: promptText
+              },
+              { inline_data: { mime_type: "image/png", data: base64ImageData } }
+            ]
+          }
+        ]
+      },
+      {
+        headers: { 'x-goog-api-key': apiKey }
+      }
+    );
+
+    const text = response.data.candidates[0].content.parts[0].text;
+    if (ocrType === 'table') {
+      // For tables, keep dollar signs for equations and remove any surrounding code block ticks.
+      return text.replace(/^```(markdown)?\n?/, '').replace(/\n?```$/, '').trim();
+    } else {
+      return text.replace(/\$\$/g, '').replace(/\$/g, '').trim(); // For formulas, clean up potential markdown wrappers
+    }
+  } catch (error) {
+    console.error("Gemini API request failed: ", error.response?.data || error.message);
+    logseq.UI.showMsg('Gemini API request failed: ' + (error.response?.data?.error?.message || error.message), 'error');
+  }
+}
+
+async function formula_ocr(ocrType: 'formula' | 'table' = 'formula') {
   try {
     // Necessary to focus the window before reading the clipboard
     window.focus();
@@ -122,37 +198,45 @@ async function formula_ocr() {
 
     console.log('Clipboard data: ', data)
 
-    const useLocalAPI = logseq.settings!["Use Local API"]
-    const ocrResult = useLocalAPI ? await query_local(data) : await query_huggingface(data)
+    const ocrProvider = logseq.settings!["OCR Provider"];
+    let ocrResult;
+
+    switch (ocrProvider) {
+      case "Local":
+        ocrResult = await query_local(data);
+        break;
+      case "Gemini":
+        ocrResult = await query_gemini(data, ocrType);
+        break;
+      default: // "HuggingFace"
+        ocrResult = await query_huggingface(data);
+        break;
+    }
+
     return ocrResult
   } catch (err) {
     logseq.UI.showMsg('Reading image failed: ' + err, 'error')
   }
 }
 
-async function main() {
+async function registerOcrCommand(command: string, wrapper: [string, string], ocrType: 'formula' | 'table' = 'formula') {
+  logseq.Editor.registerSlashCommand(command, async () => {
+    const text = await formula_ocr(ocrType);
+    if (text) {
+      const latexText = `${wrapper[0]}${text}${wrapper[1]}`;
+      await logseq.Editor.insertAtEditingCursor(latexText);
+    }
+  });
+}
 
-    logseq.useSettingsSchema(settingsSchema);
-    
-    logseq.Editor.registerSlashCommand(
-        'display-formula-ocr', 
-        async () => {
-            const text = await formula_ocr()
-            const latexText = `$$${text}$$`;
-            await logseq.Editor.insertAtEditingCursor(latexText)
-        },
-        )
-    
-    logseq.Editor.registerSlashCommand(
-        'inline-formula-ocr', 
-        async () => {
-            const text = await formula_ocr()
-            const latexText = `$${text}$`;
-            await logseq.Editor.insertAtEditingCursor(latexText)
-        },
-        )  
-        
-    console.log('Formula OCR plugin loaded')
+async function main() {
+  logseq.useSettingsSchema(settingsSchema);
+
+  await registerOcrCommand('display-formula-ocr', ['$$', '$$']);
+  await registerOcrCommand('inline-formula-ocr', ['$', '$']);
+  await registerOcrCommand('table-ocr', ['', ''], 'table');
+
+  console.log('Formula OCR plugin loaded');
 }
 
 
