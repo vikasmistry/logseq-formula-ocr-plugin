@@ -1,6 +1,3 @@
-> **Note**: This update includes support for Google Gemini and the local `pix2text` server, instructions for starting the server, and details about the new settings options. 
-
-
 # Logseq LaTeX Formula OCR Plugin
 
 Convert LaTeX formula images from clipboard to LaTeX code in [Logseq](https://logseq.com/) using various OCR providers like Hugging Face Transformers, Google Gemini, or a local Pix2Text server.
@@ -29,53 +26,41 @@ Convert LaTeX formula images from clipboard to LaTeX code in [Logseq](https://lo
 
 ## Installation Options
 
-1. **Manual + Hugging Face**
+1. **Manual + Gemini (Recomended)**
+    - Requirements: [Google Gemini API Key](https://aistudio.google.com/app/api-keys)
+    - Download the zip file from [releases](https://github.com/vikasmistry/logseq-formula-ocr-plugin/releases) and unzip it.
+    - Enable developer mode: `Logseq > Settings > Advanced > Developer mode`
+    - Import Plugin: `Logseq > Plugins > Load unpacked plugin` and point to the unzipped folder.
+    - Go to plugin settings, select "Gemini" as the OCR Provider.
+    - Paste your Google Gemini API Key in the corresponding setting field.
+
+2. **Manual + Pix2Text (Offline)**
+   - Install Pix2Text [Python package](https://github.com/breezedeus/pix2text?tab=readme-ov-file#install)
+   - Start the server, eg. ```p2t serve -l en -H 0.0.0.0 -p 8503 ```
+   - Download the zip file from [releases](https://github.com/vikasmistry/logseq-formula-ocr-plugin/releases) and unzip it.
+   - Enable developer mode: `Logseq > Settings > Advanced > Developer mode`
+   - Import Plugin: `Logseq > Plugins > Load unpacked plugin` and point to the unzipped folder.
+   - In the plugin settings, select "Local" as the OCR Provider and set the "Local API Address" to the appropriate IP address and port (default is http://0.0.0.0:8503)
+ 
+ 3. **Manual + Hugging Face**
     - Requirements: [Node.js](https://nodejs.org/en), [Yarn](https://yarnpkg.com/), [Parcel](https://parceljs.org/), [Hugging Face User Access Token](https://huggingface.co/docs/hub/security-tokens)
    - Clone repo: `git clone https://github.com/olmobaldoni/logseq-formula-ocr-plugin.git`
    - Install dependencies: `cd logseq-formula-ocr-plugin && yarn && yarn build`
    - Enable developer mode: `Logseq > Settings > Advanced > Developer mode`
    - Import Plugin: `Logseq > Plugins > Load unpacked plugin` and point to the cloned repo
 
-2. **Marketplace + Hugging Face**
+4. **Marketplace + Hugging Face**
    - Requirements: [Hugging Face User Access Token](https://huggingface.co/docs/hub/security-tokens)
    - Search for `LaTeX Formula OCR` in the Logseq marketplace and install directly
 
-3. **Marketplace + Docker**
+5. **Marketplace + Docker**
     - Requirements: [Docker](https://www.docker.com/)
     - Search for `LaTeX Formula OCR` in the Logseq marketplace and install directly
     - Pull image: `docker pull olmobaldoni/nougat-ocr-api:latest`
     - Run container: `docker run -d -p 80:80 olmobaldoni/nougat-ocr-api:latest`
 
-4. **Manual + Gemini**
-    - Requirements: Google Gemini API Key
-    - Enable developer mode: `Logseq > Settings > Advanced > Developer mode`
-    - Import Plugin: `Logseq > Plugins > Load unpacked plugin` and point to the cloned repo
-    - Go to plugin settings, select "Gemini" as the OCR Provider.
-    - Paste your Google Gemini API Key in the corresponding setting field.
-
-5. **Manual + Pix2Text (Offline)**
-   - Install Pix2Text [Python package](https://github.com/breezedeus/pix2text?tab=readme-ov-file#install)
-   - Start the server, eg. ```p2t serve -l en -H 0.0.0.0 -p 8503 ```
-   - Enable developer mode: `Logseq > Settings > Advanced > Developer mode`
-   - Import Plugin: `Logseq > Plugins > Load unpacked plugin` and point to the cloned repo
-   - In the plugin settings, select "Local" as the OCR Provider and set the "Local API Address" to the appropriate IP address and port (default is http://0.0.0.0:8503)
- 
-
 > **Note**: For more information on how to use the other local API visit: https://github.com/olmobaldoni/LaTex-Formula-OCR-API
 
-## Settings
-
-1. **Hugging Face**
-    - In Hugging Face: `Settings > Access Tokens > New Token > Name+Role(read) > Generate a token`
-    - In Logseq: `Plugins Settings > LaTex Formula OCR > Hugging Face User Access Token` and paste the token.
-    
-2. **Local API**
-    - In Logseq: `Plugins Settings > LaTex Formula OCR > Use Local API` to switch between Hugging Face and local
-
-3. **Gemini API**
-    - Get your API key from Google AI Studio.
-    - In Logseq: `Plugins Settings > LaTex Formula OCR > OCR Provider` and select `Gemini`.
-    - Then, in `Plugins Settings > LaTex Formula OCR > Google Gemini API Key` paste the token.
 
 
 ![Settings](./settings.png)
