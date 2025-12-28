@@ -8,6 +8,7 @@ Convert LaTeX formula images from clipboard to LaTeX code in [Logseq](https://lo
 - **Table OCR**: Convert images of tables into Markdown tables.
 - **Multiple OCR Providers**: Choose from several backends:
     - **Google Gemini**: High-quality formula and table recognition.
+    - **OpenAI Compatible**: Connect to any OpenAI-compatible API (e.g., Local LLMs, Groq, OpenRouter).
     - **Pix2Text (Local)**: A private, offline-first OCR server.
     - **Hugging Face API**: Cloud-based processing using the Nougat model.
     - **Docker (Self-hosted)**: Run the Nougat OCR model in a local Docker container.
@@ -33,28 +34,38 @@ Convert LaTeX formula images from clipboard to LaTeX code in [Logseq](https://lo
     - Enable developer mode: `Logseq > Settings > Advanced > Developer mode`
     - Import Plugin: `Logseq > Plugins > Load unpacked plugin` and point to the unzipped folder.
     - Go to plugin settings, select "Gemini" as the OCR Provider.
-    - Paste your Google Gemini API Key in the corresponding setting field.
+    - Paste your Google Gemini API Key in the **API Key** setting field.
 
-2. **Manual + Pix2Text (Offline)**
+2. **Manual + OpenAI Compatible**
+    - Requirements: An OpenAI-compatible API (e.g., OpenAI, Groq, Local LLM)
+    - Download the zip file from [releases](https://github.com/vikasmistry/logseq-formula-ocr-plugin/releases) and unzip it.
+    - Enable developer mode: `Logseq > Settings > Advanced > Developer mode`
+    - Import Plugin: `Logseq > Plugins > Load unpacked plugin` and point to the unzipped folder.
+    - Go to plugin settings, select "OpenAI Compatible" as the OCR Provider.
+    - Enter your API Key in the **API Key** field.
+    - Enter your API Endpoint in the **API Endpoint** field (e.g., `https://api.openai.com/v1` or `http://localhost:11434/v1`).
+    - (Optional) Set the **Model Name** (default: `gpt-4o`).
+
+3. **Manual + Pix2Text (Offline)**
    - Install Pix2Text [Python package](https://github.com/breezedeus/pix2text?tab=readme-ov-file#install)
    - Start the server, eg. ```p2t serve -l en -H 0.0.0.0 -p 8503 ```
    - Download the zip file from [releases](https://github.com/vikasmistry/logseq-formula-ocr-plugin/releases) and unzip it.
    - Enable developer mode: `Logseq > Settings > Advanced > Developer mode`
    - Import Plugin: `Logseq > Plugins > Load unpacked plugin` and point to the unzipped folder.
-   - In the plugin settings, select "Local" as the OCR Provider and set the "Local API Address" to the appropriate IP address and port (default is http://0.0.0.0:8503)
+   - In the plugin settings, select "Local" as the OCR Provider and set the **API Endpoint** to the appropriate IP address and port (default is http://0.0.0.0:8503)
  
- 3. **Manual + Hugging Face**
+ 4. **Manual + Hugging Face**
     - Requirements: [Node.js](https://nodejs.org/en), [Yarn](https://yarnpkg.com/), [Parcel](https://parceljs.org/), [Hugging Face User Access Token](https://huggingface.co/docs/hub/security-tokens)
     - Clone repo: `git clone https://github.com/olmobaldoni/logseq-formula-ocr-plugin.git`
     - Install dependencies: `cd logseq-formula-ocr-plugin && yarn && yarn build`
     - Enable developer mode: `Logseq > Settings > Advanced > Developer mode`
     - Import Plugin: `Logseq > Plugins > Load unpacked plugin` and point to the cloned repo
 
-4. **Marketplace + Hugging Face**
+5. **Marketplace + Hugging Face**
    - Requirements: [Hugging Face User Access Token](https://huggingface.co/docs/hub/security-tokens)
    - Search for `LaTeX Formula OCR` in the Logseq marketplace and install directly
 
-5. **Marketplace + Docker**
+6. **Marketplace + Docker**
     - Requirements: [Docker](https://www.docker.com/)
     - Search for `LaTeX Formula OCR` in the Logseq marketplace and install directly
     - Pull image: `docker pull olmobaldoni/nougat-ocr-api:latest`

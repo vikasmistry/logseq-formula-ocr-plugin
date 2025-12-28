@@ -1,6 +1,6 @@
 {
   "name": "latex_formula_ocr_plugin",
-  "version": "v0.0.7",
+  "version": "v0.0.8",
   "description": "Read images of LaTex formulas and get the LaTex code",
   "authors": "Olmo Baldoni",
   "license": "MIT",

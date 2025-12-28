@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.8]
+
+### Added
+- **OpenAI Compatible Support**: Added support for any OpenAI-compatible API provider (e.g., local LLMs, Groq, OpenRouter).
+- **Gemini SDK**: Migrated to the official `@google/generative-ai` SDK for better performance and reliability.
+- **Unified Settings**: Refactored settings to use a single "API Key" and "API Endpoint" for all providers, simplifying configuration.
+
+
 ## [0.0.7]
 
 ### Added
