@@ -1,39 +1,41 @@
 import "@logseq/libs"
 import { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin';
 import axios from 'axios';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const settingsSchema: SettingSchemaDesc[] = [
   {
     key: "OCR Provider",
     type: "enum",
     default: "HuggingFace",
-    enumChoices: ["HuggingFace", "Local", "Gemini"],
+    enumChoices: ["HuggingFace", "Local", "Gemini", "OpenAI Compatible"],
     title: "OCR Provider",
-    description: "Choose the OCR provider: HuggingFace, Local API, or Google Gemini API."
+    description: "Choose the OCR provider: HuggingFace, Local API, Google Gemini API, or an OpenAI Compatible API."
   },
+
+
   {
-    key: "HuggingFace User Access Token",
+    key: "API Key",
     type: "string",
     default: "",
-    title: "HuggingFace User Access Token",
-    description:
-      " Paste your HuggingFace User Access Token. For more information https://huggingface.co/docs/hub/security-tokens",
+    title: "API Key",
+    description: "Enter the API Key for your selected provider (Gemini, OpenAI Compatible, or HuggingFace).",
+    inputAs: "password",
+  } as any, // Cast to any to bypass strict type check if inputAs: 'password' is not in definition
+  {
+    key: "API Endpoint",
+    type: "string",
+    default: "https://api.openai.com/v1",
+    title: "API Endpoint",
+    description: "Enter the Base URL (for OpenAI Compatible) or Server Address (for Local API). Default for Local is http://0.0.0.0:8503.",
   },
 
   {
-    key: "Local API Address",
+    key: "Model Name",
     type: "string",
-    default: "http://0.0.0.0:8503",
-    title: "Local API Address",
-    description: "Enter the IP address and port of the local API (e.g., http://0.0.0.0:8503). Only used if 'Local' is selected as OCR Provider."
-  },
-  {
-    key: "Gemini API Key",
-    type: "string",
-    default: "",
-    title: "Google Gemini API Key",
-    description:
-      "Paste your Google Gemini API Key. For more information https://ai.google.dev/gemini-api/docs/api-key. Only used if 'Gemini' is selected as OCR Provider.",
+    default: "gemini-2.5-flash-lite",
+    title: "Model Name",
+    description: "Enter the model name (e.g., gemini-2.5-flash-lite, gpt-4o, llama3). Used for both Gemini and OpenAI Compatible providers.",
   }
 ]
 
@@ -41,9 +43,9 @@ const settingsSchema: SettingSchemaDesc[] = [
 
 async function query_huggingface(data: any) {
 
-  const access_token = logseq.settings!["HuggingFace User Access Token"]
+  const access_token = logseq.settings!["API Key"]
 
-  
+
 
   if (!access_token) {
     console.error("Access token not found. Please enter the user token in the settings.");
@@ -52,9 +54,9 @@ async function query_huggingface(data: any) {
   }
 
   const response = await fetch(
-    "https://api-inference.huggingface.co/models/Norm/nougat-latex-base", 
+    "https://api-inference.huggingface.co/models/Norm/nougat-latex-base",
     {
-      headers: { Authorization: `Bearer ${access_token}`},
+      headers: { Authorization: `Bearer ${access_token}` },
       method: "POST",
       body: data,
     }
@@ -75,9 +77,9 @@ async function query_huggingface(data: any) {
       }, waitTime);
     });
   }
-  
+
   // If there is no error, return the result
-  console.log('result: ',result);
+  console.log('result: ', result);
   console.log('result[0].generated_text: ', result[0].generated_text);
   return result[0].generated_text;
 }
@@ -85,7 +87,7 @@ async function query_huggingface(data: any) {
 
 async function query_local(data: any) {
   const formData = new FormData();
-  formData.append('image', data, 'image/png'); 
+  formData.append('image', data, 'image/png');
 
   const additionalData = {
     file_type: 'formula',            // string : 'pdf', 'page', 'text_formula', 'formula', 'text'
@@ -95,7 +97,7 @@ async function query_local(data: any) {
   Object.keys(additionalData).forEach(key => formData.append(key, additionalData[key]));
 
   try {
-    const serverurl= logseq.settings!["Local API Address"]
+    const serverurl = logseq.settings!["API Endpoint"] || "http://0.0.0.0:8503"
 
     const response = await axios.post(`${serverurl}/pix2text`, formData);
 
@@ -115,6 +117,61 @@ async function query_local(data: any) {
   }
 }
 
+async function query_openai_compatible(data: Blob, ocrType: 'formula' | 'table') {
+  const apiKey = logseq.settings!["API Key"];
+  const baseURL = logseq.settings!["API Endpoint"];
+  const modelName = logseq.settings!["Model Name"] || "gpt-4o";
+
+  if (!apiKey && baseURL.includes("openai.com")) {
+    // only warn for openai.com, local providers might not need key
+    console.warn("API Key might be missing.");
+  }
+
+  const base64ImageData = await blobToBase64(data);
+
+  const formulaPrompt = "Extract any formulas from this image as a LaTeX math expression in markdown format. The image may contain mathematical formulas and text. For any text with inline formulas, ensure only the formula part is formatted with single dollar signs ($). Use OCR to extract everything accurately, preserving all symbols and formatting. Return only the extracted content in raw markdown-compatible LaTeX. Do not include any comments, explanations, or code block formatting like ```markdown or ```latex.";
+  const tablePrompt = "Extract the table from this image into a Markdown table format. If any cells in the table contain mathematical equations, make sure to wrap them in single dollar signs ($) for inline LaTeX rendering. Your response should contain ONLY the raw Markdown for the table, without any surrounding text, comments, explanations, or code block formatting like ```markdown or ```.";
+
+  const promptText = ocrType === 'table' ? tablePrompt : formulaPrompt;
+
+  try {
+    const response = await axios.post(
+      `${baseURL}/chat/completions`,
+      {
+        model: modelName,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: promptText },
+              { type: "image_url", image_url: { url: `data:image/png;base64,${base64ImageData}` } }
+            ]
+          }
+        ],
+        max_tokens: 1000
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const text = response.data.choices[0].message.content;
+
+    if (ocrType === 'table') {
+      return text.replace(/^```(markdown)?\n?/, '').replace(/\n?```$/, '').trim();
+    } else {
+      return text.replace(/\$\$/g, '').replace(/\$/g, '').trim();
+    }
+
+  } catch (error: any) {
+    console.error("OpenAI Compatible API request failed: ", error.response?.data || error.message);
+    logseq.UI.showMsg('OpenAI Compatible API request failed: ' + (error.response?.data?.error?.message || error.message), 'error');
+  }
+}
+
 async function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -131,17 +188,19 @@ async function blobToBase64(blob: Blob): Promise<string> {
 }
 
 async function query_gemini(data: Blob, ocrType: 'formula' | 'table') {
-  const apiKey = logseq.settings!["Gemini API Key"];
+  const apiKey = logseq.settings!["API Key"];
+  const modelName = logseq.settings!["Model Name"] || "gemini-2.5-flash-lite";
 
   if (!apiKey) {
-    console.error("Gemini API Key not found. Please enter the API key in the settings.");
-    logseq.UI.showMsg('Gemini API Key not found. Please enter the API key in the settings.', 'error');
+    console.error("API Key not found. Please enter the API key in the settings.");
+    logseq.UI.showMsg('API Key not found. Please enter the API key in the settings.', 'error');
     return;
   }
 
   const base64ImageData = await blobToBase64(data);
 
-  const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`;
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: modelName });
 
   const formulaPrompt = "Extract any formulas from this image as a LaTeX math expression in markdown format. The image may contain mathematical formulas and text. For any text with inline formulas, ensure only the formula part is formatted with single dollar signs ($). Use OCR to extract everything accurately, preserving all symbols and formatting. Return only the extracted content in raw markdown-compatible LaTeX. Do not include any comments, explanations, or code block formatting like ```markdown or ```latex.";
   const tablePrompt = "Extract the table from this image into a Markdown table format. If any cells in the table contain mathematical equations, make sure to wrap them in single dollar signs ($) for inline LaTeX rendering. Your response should contain ONLY the raw Markdown for the table, without any surrounding text, comments, explanations, or code block formatting like ```markdown or ```.";
@@ -149,33 +208,25 @@ async function query_gemini(data: Blob, ocrType: 'formula' | 'table') {
   const promptText = ocrType === 'table' ? tablePrompt : formulaPrompt;
 
   try {
-    const response = await axios.post(
-      GEMINI_API_URL,
+    const result = await model.generateContent([
+      promptText,
       {
-        contents: [
-          {
-            parts: [
-              {
-                text: promptText
-              },
-              { inline_data: { mime_type: "image/png", data: base64ImageData } }
-            ]
-          }
-        ]
+        inlineData: {
+          data: base64ImageData,
+          mimeType: "image/png",
+        },
       },
-      {
-        headers: { 'x-goog-api-key': apiKey }
-      }
-    );
+    ]);
+    const response = await result.response;
+    const text = response.text();
 
-    const text = response.data.candidates[0].content.parts[0].text;
     if (ocrType === 'table') {
       // For tables, keep dollar signs for equations and remove any surrounding code block ticks.
       return text.replace(/^```(markdown)?\n?/, '').replace(/\n?```$/, '').trim();
     } else {
       return text.replace(/\$\$/g, '').replace(/\$/g, '').trim(); // For formulas, clean up potential markdown wrappers
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API request failed: ", error.response?.data || error.message);
     logseq.UI.showMsg('Gemini API request failed: ' + (error.response?.data?.error?.message || error.message), 'error');
   }
@@ -207,6 +258,9 @@ async function formula_ocr(ocrType: 'formula' | 'table' = 'formula') {
         break;
       case "Gemini":
         ocrResult = await query_gemini(data, ocrType);
+        break;
+      case "OpenAI Compatible":
+        ocrResult = await query_openai_compatible(data, ocrType);
         break;
       default: // "HuggingFace"
         ocrResult = await query_huggingface(data);
